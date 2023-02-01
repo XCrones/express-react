@@ -1,0 +1,11 @@
+version: "3.5"
+
+services:
+  DB_PSQL:
+    container_name: DB_PSQL
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=root
+    image: postgres:15.1-bullseye
