@@ -1,17 +1,15 @@
 import express from "express";
 import dotenv from "dotenv";
 
-import * as ShopValidators from "./validators/Shop.validator.js";
-import * as UserValidators from "./validators/Auth.validator.js";
-import * as UserController from "./controllers/User.controller.js";
-import * as CartController from "./controllers/Cart.controller.js";
+import { ShopValidators, UserValidators } from "./validators/index.js";
+import { CartController, UserController } from "./controllers/index.js";
 
 import authValidation from "./utils/authValidation.js";
 import checkAuth from "./utils/checkAuth.js";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 4444;
+const PORT = process.env.PORT || 5555;
 const app = express();
 
 app.use(express.json());
