@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "serve": "node ./dist/index.js",
+    "watch TSC": "tsc -w",
     "serve:dev": "nodemon --inspect ./dist/index.js"
   },
   "keywords": [],

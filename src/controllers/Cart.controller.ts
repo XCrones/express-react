@@ -1,100 +1,96 @@
 import * as DB from "../PSQL/Cart.db";
-// import { CartModel, DeleteCartModel } from "../models/Cart.model.js";
+import { TypedRequestBody, TypedResponseBody } from "../models/HttpQuery.model";
+import { ICartDb, ICartDeleteDb } from "../PSQL/Cart.db";
+import { makeMessage } from "./Message";
 
-// export const updateCart = async (req, res) => {
-//   try {
-//     const updateCartItem = CartModel({
-//       uid: req.userId,
-//       id: req.body.id,
-//       count: req.body.count,
-//     });
+export interface IUserId {
+  uid: string;
+}
 
-//     const result = await DB.patchCartDB(updateCartItem);
+interface iUpdateCartReq extends IUserId {
+  id: number;
+  count: number;
+}
 
-//     if (!!result) {
-//       return res.status(400).json({
-//         message: result,
-//       });
-//     }
+export const updateCart = async (req: TypedRequestBody<iUpdateCartReq>, res: TypedResponseBody) => {
+  try {
+    const updateCartItem: ICartDb = {
+      uid: req.body.uid,
+      product: {
+        id: req.body.id,
+        count: req.body.count,
+      },
+    };
 
-//     return res.json({
-//       success: true,
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({
-//       message: "невозможно обновить корзину",
-//     });
-//   }
-// };
+    const result = await DB.patchCartDB(updateCartItem);
 
-// export const pushCart = async (req, res) => {
-//   try {
-//     const newCartItem = CartModel({
-//       uid: req.userId,
-//       id: req.body.id,
-//       count: req.body.count,
-//     });
+    if (!!result) {
+      return res.status(400).json(makeMessage(result));
+    }
 
-//     const result = await DB.setCartDB(newCartItem);
+    return res.json(makeMessage("success"));
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(makeMessage("err update cart"));
+  }
+};
 
-//     if (!!result) {
-//       return res.status(400).json({
-//         message: result,
-//       });
-//     }
+export const pushCart = async (req: TypedRequestBody<iUpdateCartReq>, res: TypedResponseBody) => {
+  try {
+    const newCartItem: ICartDb = {
+      uid: req.body.uid,
+      product: {
+        id: req.body.id,
+        count: req.body.count,
+      },
+    };
 
-//     return res.json({
-//       success: true,
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({
-//       message: "невозможно добавить в корзину",
-//     });
-//   }
-// };
+    const result = await DB.setCartDB(newCartItem);
 
-// export const getCart = async (req, res) => {
-//   try {
-//     const result = await DB.getCartDB(req.userId);
+    if (!!result) {
+      return res.status(400).json(makeMessage(result));
+    }
 
-//     if (!result) {
-//       return res.status(404).json({
-//         message: "user cart not found",
-//       });
-//     }
+    return res.json(makeMessage("success"));
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(makeMessage("err push cart"));
+  }
+};
 
-//     return res.json(result);
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({
-//       message: "невозможно получить корзину",
-//     });
-//   }
-// };
+export const getCart = async (req: TypedRequestBody<{ uid: string }>, res: TypedResponseBody) => {
+  try {
+    const result = await DB.getCartDB(req.body.uid);
 
-// export const deleteCart = async (req, res) => {
-//   try {
-//     const deleteCartItem = DeleteCartModel({
-//       uid: req.userId,
-//       id: req.body.id,
-//     });
+    if (!result) {
+      return res.status(404).json(makeMessage("user cart not found"));
+    }
 
-//     const result = await DB.deleteCartDB(deleteCartItem);
-//     if (!!result) {
-//       return res.status(400).json({
-//         message: result,
-//       });
-//     }
+    return res.json(result);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(makeMessage("cant get user cart"));
+  }
+};
 
-//     return res.json({
-//       success: true,
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({
-//       message: "невозможно удалить продукт из корзины",
-//     });
-//   }
-// };
+export const deleteCart = async (req: TypedRequestBody<{ uid: string; id: number }>, res: TypedResponseBody) => {
+  try {
+    const deleteCartItem: ICartDeleteDb = {
+      uid: req.body.uid,
+      product: {
+        id: req.body.id,
+      },
+    };
+
+    const result = await DB.deleteCartDB(deleteCartItem);
+
+    if (!!result) {
+      return res.status(400).json(makeMessage(result));
+    }
+
+    return res.json(makeMessage("success"));
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(makeMessage("err delete item"));
+  }
+};

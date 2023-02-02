@@ -1,111 +1,108 @@
+import { makeMessage } from "./Message";
 import { validationResult } from "express-validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { TypedRequestBody, TypedResponseBody } from "../models/HttpQuery.model";
+import { IUserId } from "./Cart.controller";
+import { IUserDB, getUserByIdDB, saveUserDB, searchUserByEmailDB } from "../PSQL/Users.db";
+import { IUserSignIn, IUserSignUp } from "../models/User.model";
 
-// import { UserModel } from "../models/User.model.js";
-// import { saveUserDB, searchUserByEmailDB, getUserByIdDB } from "../PSQL/Users.db.js";
+const encryptPassword = async (password: string) => {
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(password, salt);
+  return passwordHash;
+};
 
-// export const signUp = async (req, res) => {
-//   try {
-//     const erros = validationResult(req);
+const makeTokenSign = (uid: number) => {
+  return jwt.sign(
+    {
+      uid: uid,
+    },
+    "secret",
+    {
+      expiresIn: "30d",
+    }
+  );
+};
 
-//     if (!erros.isEmpty()) {
-//       return res.status(400).json(erros.array());
-//     }
+export const signUp = async (req: TypedRequestBody<IUserSignUp>, res: TypedResponseBody) => {
+  try {
+    const erros = validationResult(req);
 
-//     const password = req.body.password;
-//     const salt = await bcrypt.genSalt(10);
-//     const hash = await bcrypt.hash(password, salt);
+    if (!erros.isEmpty()) {
+      return res.status(400).json(erros.array());
+    }
 
-//     const newUser = UserModel({
-//       email: req.body.email,
-//       passwordHash: hash,
-//       fullName: req.body.fullName,
-//       email: req.body.email,
-//       avatarUrl: req.body.avatarUrl,
-//     });
+    const passwordhash = await encryptPassword(req.body.password);
 
-//     const result = await saveUserDB(newUser);
+    const newUsers: IUserDB = {
+      email: req.body.email,
+      passwordhash,
+      fullName: req.body.fullName,
+      avatarUrl: req.body.avatarUrl || null,
+    };
 
-//     if (result === false) {
-//       return res.status(400).json({
-//         message: "email адрес занят",
-//         email: req.body.email,
-//       });
-//     }
+    const result = await saveUserDB(newUsers);
 
-//     const { passwordhash, ...userData } = result;
+    const { passwordhash: password, ...userData } = result;
 
-//     const token = jwt.sign(
-//       {
-//         id: result.id,
-//       },
-//       "secret",
-//       {
-//         expiresIn: "30d",
-//       }
-//     );
+    const token = makeTokenSign(result.uid);
 
-//     return res.json({
-//       ...userData,
-//       token,
-//     });
-//   } catch (e) {
-//     return res.status(500).json("Не удалось зарегистрироваться");
-//   }
-// };
+    return res.json({
+      ...userData,
+      token,
+    });
+  } catch (err) {
+    console.log(err);
+    if (err === "email is busy") {
+      return res.status(400).json(makeMessage("email is busy"));
+    }
+    return res.status(500).json("Не удалось зарегистрироваться");
+  }
+};
 
-// export const signIn = async (req, res) => {
-//   try {
-//     const result = await searchUserByEmailDB(req.body.email);
+export const signIn = async (req: TypedRequestBody<IUserSignIn>, res: TypedResponseBody) => {
+  try {
+    const result = await searchUserByEmailDB(req.body.email);
 
-//     if (!result) {
-//       return res.status(400).json("Неверный логин или пароль");
-//     }
+    if (!result) {
+      return res.status(400).json(makeMessage("wrong login ")); //or password
+    }
 
-//     const isValidPass = await bcrypt.compare(req.body.password, result.passwordhash);
+    const isValidPass = await bcrypt.compare(req.body.password, result.passwordhash);
 
-//     if (!isValidPass) {
-//       return res.status(400).json("Неверный логин или пароль");
-//     }
+    if (!isValidPass) {
+      return res.status(400).json(makeMessage("wrong  password")); //login or
+    }
 
-//     const token = jwt.sign(
-//       {
-//         id: result.id,
-//       },
-//       "secret",
-//       {
-//         expiresIn: "30d",
-//       }
-//     );
+    const token = makeTokenSign(result.uid);
 
-//     const { passwordhash, ...userData } = result;
+    const { passwordhash, ...userData } = result;
 
-//     return res.json({
-//       ...userData,
-//       token,
-//     });
-//   } catch (e) {
-//     return res.status(500).json("Не удалось авторизоваться");
-//   }
-// };
+    return res.json({
+      ...userData,
+      token,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(makeMessage("error signin"));
+  }
+};
 
-// export const getMe = async (req, res) => {
-//   try {
-//     const result = await getUserByIdDB(req.userId);
+export const getMe = async (req: TypedRequestBody<IUserId>, res: TypedResponseBody) => {
+  try {
+    const result = await getUserByIdDB(req.body.uid);
 
-//     if (!result) {
-//       return res.status(404).json({
-//         message: "пользователь не найден",
-//       });
-//     }
+    if (!result) {
+      return res.status(404).json(makeMessage("user not found"));
+    }
 
-//     const { passwordhash, ...userData } = result;
+    const { passwordhash: password, ...userData } = result;
 
-//     return res.json({
-//       ...userData,
-//     });
-//   } catch (err) {
-//     return res.status(500).json("Не доступа");
-//   }
-// };
+    return res.json({
+      ...userData,
+    });
+  } catch (err) {
+    return res.status(500).json(makeMessage("no access"));
+  }
+};

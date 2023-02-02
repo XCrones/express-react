@@ -1,6 +1,11 @@
-export interface IUser {
+export interface IUserSignUp {
   email: string;
-  passwordHash: string;
+  password: string;
   fullName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+}
+
+export interface IUserSignIn {
+  email: string;
+  password: string;
 }
